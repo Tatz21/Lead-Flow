@@ -43,7 +43,8 @@
             "opened": { "type": "number" },
             "clicked": { "type": "number" },
             "replies": { "type": "number" },
-            "conversions": { "type": "number" }
+            "conversions": { "type": "number" },
+            "revenue": { "type": "number" }
           }
         },
         "createdAt": { "type": "string", "format": "date-time" }
@@ -64,6 +65,11 @@
         "company": { "type": "string" },
         "website": { "type": "string" },
         "status": { "type": "string", "enum": ["Verified", "Pending", "Invalid"] },
+        "value": { "type": "number" },
+        "source": { "type": "string", "enum": ["LinkedIn", "Direct Web", "Referrals", "Cold Email"] },
+        "isCleaned": { "type": "boolean" },
+        "isEmailFound": { "type": "boolean" },
+        "isEmailSent": { "type": "boolean" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "email"]

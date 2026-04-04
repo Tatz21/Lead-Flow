@@ -20,7 +20,7 @@
 //   - description: string
 //   - status: string (Active/Paused/Draft)
 //   - sequence: array of objects { day, subject, body }
-//   - stats: object { leads, sent, opened, clicked, replies, conversions }
+//   - stats: object { leads, sent, opened, clicked, replies, conversions, revenue }
 //   - createdAt: timestamp
 //
 // Collection: leads
@@ -34,6 +34,11 @@
 //   - company: string
 //   - website: string
 //   - status: string (Verified/Pending/Invalid)
+//   - value: number
+//   - source: string (LinkedIn/Direct Web/Referrals/Cold Email)
+//   - isCleaned: boolean
+//   - isEmailFound: boolean
+//   - isEmailSent: boolean
 //   - createdAt: timestamp
 //
 // ===============================================================

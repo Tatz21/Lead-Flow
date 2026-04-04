@@ -1,181 +1,174 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  User, 
-  Mail, 
-  Key, 
-  Shield, 
-  Save, 
-  Bell, 
-  Globe,
-  Database
-} from 'lucide-react';
-import { cn } from '../lib/utils.ts';
+import React from 'react';
 import { motion } from 'motion/react';
-import { useAuth } from '../context/AuthContext.tsx';
-import { db } from '../lib/firebase.ts';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-
-const SettingSection = ({ title, description, children }: any) => (
-  <div className="neumorph rounded-[2.5rem] p-8 flex flex-col gap-6">
-    <div>
-      <h3 className="text-xl font-display font-bold text-slate-800">{title}</h3>
-      <p className="text-sm text-slate-500">{description}</p>
-    </div>
-    <div className="space-y-4">
-      {children}
-    </div>
-  </div>
-);
-
-const InputField = ({ label, icon: Icon, ...props }: any) => (
-  <div className="space-y-2">
-    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-2">{label}</label>
-    <div className="relative">
-      <Icon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-      <input 
-        {...props}
-        className="w-full pl-12 pr-4 py-3 neumorph-inset rounded-2xl focus:outline-none text-slate-700 font-medium"
-      />
-    </div>
-  </div>
-);
+import { 
+  Settings as SettingsIcon, 
+  Database, 
+  Shield, 
+  Bell, 
+  User,
+  Copy,
+  Check,
+  AlertTriangle
+} from 'lucide-react';
+import { useState } from 'react';
 
 export default function Settings() {
-  const { user } = useAuth();
-  const [profile, setProfile] = useState({
-    displayName: '',
-    email: '',
-    brevoApiKey: '',
-    supabaseUrl: '',
-    supabaseAnonKey: ''
-  });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const isSupabaseConfigured = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
 
-  useEffect(() => {
-    if (!user) return;
-    const fetchProfile = async () => {
-      const docRef = doc(db, 'users', user.uid);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setProfile({ ...profile, ...docSnap.data() });
-      } else {
-        setProfile({
-          ...profile,
-          displayName: user.displayName || '',
-          email: user.email || ''
-        });
-      }
-      setLoading(false);
-    };
-    fetchProfile();
-  }, [user]);
+  const sqlSchema = `
+-- Create leads table
+CREATE TABLE leads (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id TEXT NOT NULL,
+  first_name TEXT,
+  last_name TEXT,
+  email TEXT,
+  company TEXT,
+  website TEXT,
+  status TEXT DEFAULT 'Pending',
+  value NUMERIC DEFAULT 0,
+  source TEXT,
+  is_cleaned BOOLEAN DEFAULT FALSE,
+  is_email_found BOOLEAN DEFAULT FALSE,
+  is_email_sent BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
 
-  const handleSave = async () => {
-    if (!user) return;
-    setSaving(true);
-    try {
-      await setDoc(doc(db, 'users', user.uid), {
-        ...profile,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-      alert("Settings saved successfully!");
-    } catch (error) {
-      console.error("Error saving settings:", error);
-    } finally {
-      setSaving(false);
-    }
+-- Create campaigns table
+CREATE TABLE campaigns (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  status TEXT DEFAULT 'Draft',
+  sequence JSONB DEFAULT '[]',
+  stats JSONB DEFAULT '{"leads": 0, "sent": 0, "opened": 0, "clicked": 0, "replies": 0, "conversions": 0, "revenue": 0}',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Enable RLS
+ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE campaigns ENABLE ROW LEVEL SECURITY;
+
+-- Create policies (Simplified for demo, adjust for production)
+CREATE POLICY "Users can only access their own leads" ON leads FOR ALL USING (user_id = auth.uid()::text);
+CREATE POLICY "Users can only access their own campaigns" ON campaigns FOR ALL USING (user_id = auth.uid()::text);
+  `;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(sqlSchema);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
-  if (loading) return <div className="p-8 text-center">Loading settings...</div>;
-
   return (
-    <div className="flex flex-col gap-8 p-2 max-w-4xl mx-auto">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-3xl font-display font-bold text-slate-800">Settings</h2>
-          <p className="text-slate-500">Manage your profile and API integrations</p>
-        </div>
-        <button 
-          onClick={handleSave}
-          disabled={saving}
-          className="neumorph px-8 py-4 rounded-2xl font-bold text-blue-600 flex items-center gap-2 hover:scale-105 transition-all disabled:opacity-50"
+    <div className="flex flex-col gap-8 p-2 pb-24 md:pb-2">
+      {!isSupabaseConfigured && (
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="neumorph rounded-[2.5rem] p-6 bg-amber-50/50 border border-amber-200/50"
         >
-          <Save className="w-5 h-5" /> {saving ? 'Saving...' : 'Save Changes'}
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 gap-8">
-        <SettingSection 
-          title="Profile Information" 
-          description="Update your personal details and how others see you."
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <InputField 
-              label="Full Name" 
-              icon={User} 
-              value={profile.displayName}
-              onChange={(e: any) => setProfile({ ...profile, displayName: e.target.value })}
-            />
-            <InputField 
-              label="Email Address" 
-              icon={Mail} 
-              value={profile.email}
-              disabled
-            />
-          </div>
-        </SettingSection>
-
-        <SettingSection 
-          title="API Integrations" 
-          description="Connect your external services to power LeadFlow AI."
-        >
-          <div className="space-y-6">
-            <InputField 
-              label="Brevo API Key" 
-              icon={Key} 
-              type="password"
-              placeholder="xkeysib-..."
-              value={profile.brevoApiKey}
-              onChange={(e: any) => setProfile({ ...profile, brevoApiKey: e.target.value })}
-            />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InputField 
-                label="Supabase URL" 
-                icon={Globe} 
-                placeholder="https://your-project.supabase.co"
-                value={profile.supabaseUrl}
-                onChange={(e: any) => setProfile({ ...profile, supabaseUrl: e.target.value })}
-              />
-              <InputField 
-                label="Supabase Anon Key" 
-                icon={Shield} 
-                type="password"
-                placeholder="eyJhbG..."
-                value={profile.supabaseAnonKey}
-                onChange={(e: any) => setProfile({ ...profile, supabaseAnonKey: e.target.value })}
-              />
+          <div className="flex items-center gap-4 text-amber-800">
+            <div className="p-3 bg-amber-100 rounded-2xl">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="font-display font-bold">Supabase Not Configured</h3>
+              <p className="text-sm opacity-80">Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your environment variables in the Secrets panel.</p>
             </div>
           </div>
-        </SettingSection>
-
-        <SettingSection 
-          title="Notifications" 
-          description="Choose what updates you want to receive."
-        >
-          <div className="flex items-center justify-between p-4 neumorph-sm rounded-2xl">
-            <div className="flex items-center gap-3">
-              <Bell className="w-5 h-5 text-blue-600" />
+        </motion.div>
+      )}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          <div className="neumorph rounded-[2.5rem] p-8">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="p-3 neumorph-sm rounded-2xl text-blue-600">
+                <Database className="w-6 h-6" />
+              </div>
               <div>
-                <p className="font-bold text-slate-800 text-sm">Email Notifications</p>
-                <p className="text-xs text-slate-500">Get notified when a campaign completes.</p>
+                <h3 className="text-xl font-display font-bold text-slate-800">Database Setup</h3>
+                <p className="text-sm text-slate-500">Run this SQL in your Supabase SQL Editor to set up the required tables.</p>
               </div>
             </div>
-            <div className="w-12 h-6 neumorph-inset rounded-full relative cursor-pointer">
-              <div className="absolute left-1 top-1 w-4 h-4 bg-blue-600 rounded-full shadow-sm" />
+
+            <div className="relative">
+              <pre className="bg-slate-900 text-slate-300 p-6 rounded-2xl overflow-x-auto text-xs font-mono leading-relaxed">
+                {sqlSchema}
+              </pre>
+              <button 
+                onClick={handleCopy}
+                className="absolute top-4 right-4 p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all text-white"
+              >
+                {copied ? <Check className="w-5 h-5 text-emerald-400" /> : <Copy className="w-5 h-5" />}
+              </button>
             </div>
           </div>
-        </SettingSection>
+
+          <div className="neumorph rounded-[2.5rem] p-8">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="p-3 neumorph-sm rounded-2xl text-blue-600">
+                <Shield className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-xl font-display font-bold text-slate-800">Security & Privacy</h3>
+                <p className="text-sm text-slate-500">Manage your account security and data privacy settings.</p>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 neumorph-sm rounded-2xl">
+                <div>
+                  <p className="font-bold text-slate-800">Two-Factor Authentication</p>
+                  <p className="text-xs text-slate-500">Add an extra layer of security to your account.</p>
+                </div>
+                <div className="w-12 h-6 bg-slate-200 rounded-full relative cursor-pointer">
+                  <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-8">
+          <div className="neumorph rounded-[2.5rem] p-8">
+            <div className="flex flex-col items-center text-center gap-4">
+              <div className="w-24 h-24 neumorph rounded-full flex items-center justify-center text-blue-600">
+                <User className="w-12 h-12" />
+              </div>
+              <div>
+                <h3 className="text-xl font-display font-bold text-slate-800">Profile Settings</h3>
+                <p className="text-sm text-slate-500">mondaldebdip007@gmail.com</p>
+              </div>
+              <button className="w-full py-4 neumorph-sm rounded-2xl font-bold text-blue-600 hover:scale-[1.02] transition-all">
+                Edit Profile
+              </button>
+            </div>
+          </div>
+
+          <div className="neumorph rounded-[2.5rem] p-8">
+            <h4 className="font-bold text-slate-800 mb-4">Notifications</h4>
+            <div className="space-y-4">
+              {[
+                { label: "Email Alerts", icon: Bell },
+                { label: "Campaign Updates", icon: SettingsIcon },
+                { label: "Lead Reports", icon: Database }
+              ].map((item, i) => (
+                <div key={i} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <item.icon className="w-4 h-4 text-slate-400" />
+                    <span className="text-sm font-medium text-slate-600">{item.label}</span>
+                  </div>
+                  <div className="w-10 h-5 bg-blue-600 rounded-full relative">
+                    <div className="absolute right-1 top-1 w-3 h-3 bg-white rounded-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

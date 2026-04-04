@@ -10,8 +10,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils.ts';
 import { useAuth } from '../context/AuthContext.tsx';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase.ts';
+import { supabase } from '../lib/supabase.ts';
 
 const StatCard = ({ title, value, change, icon: Icon, trend }: any) => (
   <motion.div 
@@ -43,38 +42,65 @@ export default function DashboardOverview() {
     leads: 0,
     sent: 0,
     opened: 0,
-    conversions: 0
+    conversions: 0,
+    pipelineValue: 0
   });
 
   useEffect(() => {
     if (!user) return;
     
-    // Listen to leads
-    const qLeads = query(collection(db, 'leads'), where('userId', '==', user.uid));
-    const unsubLeads = onSnapshot(qLeads, (snap) => {
-      setStats(prev => ({ ...prev, leads: snap.size }));
-    });
+    const fetchData = async () => {
+      try {
+        // Fetch leads stats
+        const { data: leadsData, error: leadsError } = await supabase
+          .from('leads')
+          .select('value')
+          .eq('user_id', user.uid);
+        
+        if (!leadsError && leadsData) {
+          const totalValue = leadsData.reduce((acc, curr) => acc + (curr.value || 0), 0);
+          setStats(prev => ({ ...prev, leads: leadsData.length, pipelineValue: totalValue }));
+        }
 
-    // Listen to campaigns for other stats
-    const qCampaigns = query(collection(db, 'campaigns'), where('userId', '==', user.uid));
-    const unsubCampaigns = onSnapshot(qCampaigns, (snap) => {
-      let sent = 0, opened = 0, conv = 0;
-      snap.docs.forEach(doc => {
-        const data = doc.data();
-        sent += data.stats?.sent || 0;
-        opened += data.stats?.opened || 0;
-        conv += data.stats?.conversions || 0;
-      });
-      setStats(prev => ({ ...prev, sent, opened, conversions: conv }));
-    });
+        // Fetch campaigns stats
+        const { data: campaignsData, error: campaignsError } = await supabase
+          .from('campaigns')
+          .select('stats')
+          .eq('user_id', user.uid);
+        
+        if (!campaignsError && campaignsData) {
+          let sent = 0, opened = 0, conv = 0;
+          campaignsData.forEach(c => {
+            sent += c.stats?.sent || 0;
+            opened += c.stats?.opened || 0;
+            conv += c.stats?.conversions || 0;
+          });
+          setStats(prev => ({ ...prev, sent, opened, conversions: conv }));
+        }
+      } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+      }
+    };
+
+    fetchData();
+
+    // Set up subscriptions for real-time updates
+    const leadsSub = supabase
+      .channel('dashboard_leads')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads', filter: `user_id=eq.${user.uid}` }, fetchData)
+      .subscribe();
+
+    const campaignsSub = supabase
+      .channel('dashboard_campaigns')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns', filter: `user_id=eq.${user.uid}` }, fetchData)
+      .subscribe();
 
     return () => {
-      unsubLeads();
-      unsubCampaigns();
+      leadsSub.unsubscribe();
+      campaignsSub.unsubscribe();
     };
   }, [user]);
 
-  const openRate = stats.sent > 0 ? ((stats.opened / stats.sent) * 100).toFixed(1) : '0.0';
   const convRate = stats.sent > 0 ? ((stats.conversions / stats.sent) * 100).toFixed(1) : '0.0';
 
   return (
@@ -88,18 +114,18 @@ export default function DashboardOverview() {
           trend="up" 
         />
         <StatCard 
+          title="Pipeline Value" 
+          value={`₹${stats.pipelineValue.toLocaleString('en-IN')}`} 
+          change="15.2" 
+          icon={TrendingUp} 
+          trend="up" 
+        />
+        <StatCard 
           title="Emails Sent" 
           value={stats.sent.toLocaleString()} 
           change="8.2" 
           icon={Mail} 
           trend="up" 
-        />
-        <StatCard 
-          title="Open Rate" 
-          value={`${openRate}%`} 
-          change="2.4" 
-          icon={MousePointer2} 
-          trend="down" 
         />
         <StatCard 
           title="Conversion" 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Plus, Play, Pause, Trash2, Mail, Clock, ChevronRight, Target, 
   Users, MousePointer2, MessageSquare, Edit3, Copy, X, Save,
@@ -7,11 +7,7 @@ import {
 import { cn } from '../lib/utils.ts';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { 
-  collection, query, where, onSnapshot, addDoc, updateDoc, 
-  deleteDoc, doc, serverTimestamp 
-} from 'firebase/firestore';
-import { db } from '../lib/firebase.ts';
+import { supabase } from '../lib/supabase.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 
 const TEMPLATES = [
@@ -30,6 +26,55 @@ const TEMPLATES = [
     description: 'For agencies looking to scale their client base.',
     sequence: [
       { day: 1, subject: 'Scaling {{company}} in 2024', body: 'Hey {{firstName}}, love what you guys are doing at {{company}}...' }
+    ]
+  },
+  {
+    id: 'real-estate',
+    title: 'Real Estate Investors',
+    description: 'Outreach for property management or investment deals.',
+    sequence: [
+      { day: 1, subject: 'Property investment opportunity in {{city}}', body: 'Hi {{firstName}}, I have a unique property deal that might interest you...' }
+    ]
+  },
+  {
+    id: 'freelance',
+    title: 'Freelance Client Acquisition',
+    description: 'Perfect for designers, developers, and marketers.',
+    sequence: [
+      { day: 1, subject: 'Helping {{company}} with {{service}}', body: 'Hi {{firstName}}, I saw your recent project and thought I could help...' }
+    ]
+  },
+  {
+    id: 'b2b-tech',
+    title: 'B2B Tech Sales',
+    description: 'High-ticket enterprise software outreach.',
+    sequence: [
+      { day: 1, subject: 'Improving {{company}}\'s workflow', body: 'Hi {{firstName}}, I noticed some inefficiencies in your current tech stack...' }
+    ]
+  },
+  {
+    id: 'hr-recruitment',
+    title: 'HR & Recruitment',
+    description: 'Targeting hiring managers for recruitment services.',
+    sequence: [
+      { day: 1, subject: 'Top talent for {{company}}', body: 'Hi {{firstName}}, I saw you are hiring for several roles at {{company}}...' },
+      { day: 4, subject: 'Re: Top talent', body: 'Just wanted to follow up on my previous email regarding recruitment...' }
+    ]
+  },
+  {
+    id: 'ecommerce-growth',
+    title: 'E-commerce Growth',
+    description: 'Helping online stores scale their revenue.',
+    sequence: [
+      { day: 1, subject: 'Scaling {{company}} sales', body: 'Hi {{firstName}}, I love your products at {{company}}. Have you considered...' }
+    ]
+  },
+  {
+    id: 'cold-outreach-basic',
+    title: 'General Cold Outreach',
+    description: 'A versatile template for any B2B outreach.',
+    sequence: [
+      { day: 1, subject: 'Quick question for {{firstName}}', body: 'Hi {{firstName}}, I was researching {{company}} and had a quick question...' }
     ]
   }
 ];
@@ -164,7 +209,7 @@ const CampaignForm = ({ campaign, onClose, onSave }: any) => {
 };
 
 const CampaignCard = ({ campaign, onEdit, onDuplicate, onDelete }: any) => {
-  const stats = campaign.stats || { leads: 0, sent: 0, opened: 0, clicked: 0, replies: 0, conversions: 0 };
+  const stats = campaign.stats || { leads: 0, sent: 0, opened: 0, clicked: 0, replies: 0, conversions: 0, revenue: 0 };
   const ctr = stats.sent > 0 ? ((stats.clicked / stats.sent) * 100).toFixed(1) : '0.0';
   const conv = stats.sent > 0 ? ((stats.conversions / stats.sent) * 100).toFixed(1) : '0.0';
 
@@ -216,8 +261,8 @@ const CampaignCard = ({ campaign, onEdit, onDuplicate, onDelete }: any) => {
         {[
           { label: "Leads", value: stats.leads, icon: Users },
           { label: "Sent", value: stats.sent, icon: Mail },
-          { label: "CTR", value: `${ctr}%`, icon: MousePointer2, color: "text-blue-600" },
-          { label: "Conv.", value: `${conv}%`, icon: TrendingUp, color: "text-emerald-600" }
+          { label: "Revenue", value: `₹${(stats.revenue || 0).toLocaleString('en-IN')}`, icon: TrendingUp, color: "text-emerald-600" },
+          { label: "Conv.", value: `${conv}%`, icon: Zap, color: "text-blue-600" }
         ].map((stat, i) => (
           <div key={i} className="neumorph-sm p-4 rounded-2xl text-center">
             <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">{stat.label}</p>
@@ -251,29 +296,53 @@ export default function CampaignManager() {
   const [editingCampaign, setEditingCampaign] = useState<any>(null);
   const [showTemplates, setShowTemplates] = useState(false);
 
-  useEffect(() => {
+  const fetchCampaigns = useCallback(async () => {
     if (!user) return;
-    const q = query(collection(db, 'campaigns'), where('userId', '==', user.uid));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setCampaigns(data);
-    });
-    return unsubscribe;
+    try {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('*')
+        .eq('user_id', user.uid)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setCampaigns(data || []);
+    } catch (error) {
+      console.error("Error fetching campaigns:", error);
+    }
   }, [user]);
+
+  useEffect(() => {
+    fetchCampaigns();
+
+    if (!user) return;
+    const subscription = supabase
+      .channel('campaigns_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaigns', filter: `user_id=eq.${user.uid}` }, fetchCampaigns)
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [user, fetchCampaigns]);
 
   const handleSave = async (data: any) => {
     if (!user) return;
     try {
       if (data.id) {
-        const { id, ...updateData } = data;
-        await updateDoc(doc(db, 'campaigns', id), updateData);
+        const { id, created_at, ...updateData } = data;
+        const { error } = await supabase
+          .from('campaigns')
+          .update(updateData)
+          .eq('id', id);
+        if (error) throw error;
       } else {
-        await addDoc(collection(db, 'campaigns'), {
+        const { error } = await supabase.from('campaigns').insert([{
           ...data,
-          userId: user.uid,
-          createdAt: serverTimestamp(),
-          stats: { leads: 0, sent: 0, opened: 0, clicked: 0, replies: 0, conversions: 0 }
-        });
+          user_id: user.uid,
+          stats: { leads: 0, sent: 0, opened: 0, clicked: 0, replies: 0, conversions: 0, revenue: 0 }
+        }]);
+        if (error) throw error;
       }
       setIsFormOpen(false);
       setEditingCampaign(null);
@@ -284,13 +353,21 @@ export default function CampaignManager() {
 
   const handleDuplicate = async (campaign: any) => {
     if (!user) return;
-    const { id, createdAt, ...rest } = campaign;
+    const { id, created_at, ...rest } = campaign;
     await handleSave({ ...rest, title: `${rest.title} (Copy)` });
   };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Are you sure you want to delete this campaign?")) return;
-    await deleteDoc(doc(db, 'campaigns', id));
+    try {
+      const { error } = await supabase
+        .from('campaigns')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error deleting campaign:", error);
+    }
   };
 
   const useTemplate = (template: any) => {
