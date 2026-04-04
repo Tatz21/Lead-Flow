@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { 
   Upload, 
@@ -9,26 +9,82 @@ import {
   CheckCircle2, 
   XCircle,
   Clock,
-  ExternalLink
+  ExternalLink,
+  Trash2,
+  Plus
 } from 'lucide-react';
 import { cn } from '../lib/utils.ts';
+import { 
+  collection, query, where, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp 
+} from 'firebase/firestore';
+import { db } from '../lib/firebase.ts';
+import { useAuth } from '../context/AuthContext.tsx';
+import axios from 'axios';
 
 export default function LeadsTable() {
-  const [leads, setLeads] = useState([
-    { id: 1, name: "John Doe", company: "Acme Corp", email: "john@acme.com", status: "Verified", website: "acme.com" },
-    { id: 2, name: "Jane Smith", company: "TechFlow", email: "jane@techflow.io", status: "Pending", website: "techflow.io" },
-    { id: 3, name: "Bob Wilson", company: "Global Inc", email: "bob@global.com", status: "Invalid", website: "global.com" },
-    { id: 4, name: "Alice Brown", company: "StartUp", email: "alice@startup.co", status: "Verified", website: "startup.co" },
-  ]);
+  const { user } = useAuth();
+  const [leads, setLeads] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    console.log("Files dropped:", acceptedFiles);
-    // Handle CSV upload logic here
-  }, []);
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, 'leads'), where('userId', '==', user.uid));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setLeads(data);
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, [user]);
+
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    if (!user || acceptedFiles.length === 0) return;
+    setUploading(true);
+    
+    const file = acceptedFiles[0];
+    const reader = new FileReader();
+    
+    reader.onload = async (e) => {
+      const text = e.target?.result as string;
+      try {
+        // In a real app, we'd send this to the backend agent
+        // For this demo, we'll simulate the cleaning process and add to Firestore
+        const response = await axios.post('/api/leads/upload', { csvData: text });
+        console.log("Upload response:", response.data);
+        
+        // Simulating AI cleaning and adding a few leads
+        const mockLeads = [
+          { firstName: "New", lastName: "Lead", email: "new@example.com", company: "Future Corp", website: "future.com", status: "Pending" },
+          { firstName: "AI", lastName: "Agent", email: "ai@bot.io", company: "Botics", website: "botics.io", status: "Verified" }
+        ];
+
+        for (const lead of mockLeads) {
+          await addDoc(collection(db, 'leads'), {
+            ...lead,
+            userId: user.uid,
+            createdAt: serverTimestamp()
+          });
+        }
+        alert("Leads uploaded and processing started!");
+      } catch (error) {
+        console.error("Upload failed:", error);
+      } finally {
+        setUploading(false);
+      }
+    };
+    reader.readAsText(file);
+  }, [user]);
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Delete this lead?")) return;
+    await deleteDoc(doc(db, 'leads', id));
+  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
     onDrop,
-    accept: { 'text/csv': ['.csv'] }
+    accept: { 'text/csv': ['.csv'] },
+    disabled: uploading
   });
 
   return (
@@ -38,15 +94,18 @@ export default function LeadsTable() {
         {...getRootProps()} 
         className={cn(
           "neumorph rounded-[2.5rem] p-12 border-4 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center gap-4",
-          isDragActive ? "border-blue-400 bg-blue-50/50" : "border-slate-200/50"
+          isDragActive ? "border-blue-400 bg-blue-50/50" : "border-slate-200/50",
+          uploading && "opacity-50 cursor-not-allowed"
         )}
       >
         <input {...getInputProps()} />
         <div className="w-16 h-16 neumorph-sm rounded-2xl flex items-center justify-center text-blue-600">
-          <Upload className="w-8 h-8" />
+          {uploading ? <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" /> : <Upload className="w-8 h-8" />}
         </div>
         <div className="text-center">
-          <h3 className="text-xl font-display font-bold text-slate-800">Upload Leads CSV</h3>
+          <h3 className="text-xl font-display font-bold text-slate-800">
+            {uploading ? 'Processing Leads...' : 'Upload Leads CSV'}
+          </h3>
           <p className="text-slate-500">Drag and drop your file here, or click to browse</p>
         </div>
       </div>
@@ -67,7 +126,7 @@ export default function LeadsTable() {
               <Filter className="w-5 h-5" />
             </button>
             <button className="neumorph-sm px-6 py-3 rounded-xl font-bold text-blue-600 hover:scale-105 transition-all">
-              Add Lead
+              <Plus className="w-5 h-5" /> Add Lead
             </button>
           </div>
         </div>
@@ -89,10 +148,10 @@ export default function LeadsTable() {
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 neumorph-sm rounded-xl flex items-center justify-center font-bold text-blue-600">
-                        {lead.name.charAt(0)}
+                        {lead.firstName?.charAt(0) || 'L'}
                       </div>
                       <div>
-                        <p className="font-bold text-slate-800">{lead.name}</p>
+                        <p className="font-bold text-slate-800">{lead.firstName} {lead.lastName}</p>
                         <p className="text-xs text-slate-500">{lead.email}</p>
                       </div>
                     </div>
@@ -117,12 +176,22 @@ export default function LeadsTable() {
                     </a>
                   </td>
                   <td className="px-8 py-6">
-                    <button className="p-2 hover:bg-slate-200 rounded-lg transition-colors">
-                      <MoreVertical className="w-5 h-5 text-slate-400" />
+                    <button 
+                      onClick={() => handleDelete(lead.id)}
+                      className="p-2 hover:bg-rose-50 rounded-lg transition-colors text-rose-400 hover:text-rose-600"
+                    >
+                      <Trash2 className="w-5 h-5" />
                     </button>
                   </td>
                 </tr>
               ))}
+              {leads.length === 0 && !loading && (
+                <tr>
+                  <td colSpan={5} className="px-8 py-20 text-center text-slate-400 font-medium">
+                    No leads found. Upload a CSV to get started.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -130,3 +199,4 @@ export default function LeadsTable() {
     </div>
   );
 }
+

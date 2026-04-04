@@ -19,7 +19,7 @@ export class EmailFinder {
       const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
       const emails = Array.from(new Set(content.match(emailRegex) || []));
 
-      return emails.filter(e => !e.endsWith('.png') && !e.endsWith('.jpg'));
+      return emails.filter((e: any) => typeof e === 'string' && !e.endsWith('.png') && !e.endsWith('.jpg'));
     } catch (error) {
       console.error(`Error scraping ${website}:`, error);
       return [];

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   TrendingUp, 
@@ -8,6 +8,10 @@ import {
   ArrowUpRight,
   ArrowDownRight
 } from 'lucide-react';
+import { cn } from '../lib/utils.ts';
+import { useAuth } from '../context/AuthContext.tsx';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase.ts';
 
 const StatCard = ({ title, value, change, icon: Icon, trend }: any) => (
   <motion.div 
@@ -33,36 +37,73 @@ const StatCard = ({ title, value, change, icon: Icon, trend }: any) => (
   </motion.div>
 );
 
-import { cn } from '../lib/utils.ts';
-
 export default function DashboardOverview() {
+  const { user } = useAuth();
+  const [stats, setStats] = useState({
+    leads: 0,
+    sent: 0,
+    opened: 0,
+    conversions: 0
+  });
+
+  useEffect(() => {
+    if (!user) return;
+    
+    // Listen to leads
+    const qLeads = query(collection(db, 'leads'), where('userId', '==', user.uid));
+    const unsubLeads = onSnapshot(qLeads, (snap) => {
+      setStats(prev => ({ ...prev, leads: snap.size }));
+    });
+
+    // Listen to campaigns for other stats
+    const qCampaigns = query(collection(db, 'campaigns'), where('userId', '==', user.uid));
+    const unsubCampaigns = onSnapshot(qCampaigns, (snap) => {
+      let sent = 0, opened = 0, conv = 0;
+      snap.docs.forEach(doc => {
+        const data = doc.data();
+        sent += data.stats?.sent || 0;
+        opened += data.stats?.opened || 0;
+        conv += data.stats?.conversions || 0;
+      });
+      setStats(prev => ({ ...prev, sent, opened, conversions: conv }));
+    });
+
+    return () => {
+      unsubLeads();
+      unsubCampaigns();
+    };
+  }, [user]);
+
+  const openRate = stats.sent > 0 ? ((stats.opened / stats.sent) * 100).toFixed(1) : '0.0';
+  const convRate = stats.sent > 0 ? ((stats.conversions / stats.sent) * 100).toFixed(1) : '0.0';
+
   return (
     <div className="flex flex-col gap-8 p-2">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           title="Total Leads" 
-          value="1,284" 
+          value={stats.leads.toLocaleString()} 
           change="12.5" 
           icon={Users} 
           trend="up" 
         />
         <StatCard 
           title="Emails Sent" 
-          value="842" 
+          value={stats.sent.toLocaleString()} 
           change="8.2" 
           icon={Mail} 
           trend="up" 
         />
         <StatCard 
           title="Open Rate" 
-          value="42.3%" 
+          value={`${openRate}%`} 
           change="2.4" 
           icon={MousePointer2} 
           trend="down" 
         />
         <StatCard 
           title="Conversion" 
-          value="12.8%" 
+          value={`${convRate}%`} 
           change="4.1" 
           icon={TrendingUp} 
           trend="up" 
@@ -119,3 +160,4 @@ export default function DashboardOverview() {
     </div>
   );
 }
+
