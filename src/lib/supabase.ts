@@ -5,7 +5,9 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 // We use a proxy to avoid crashing on initialization if credentials are missing.
 // This allows the app to load and show a warning instead of a white screen.
-export const supabase = (supabaseUrl && supabaseAnonKey)
+const isConfigured = supabaseUrl && supabaseUrl.length > 0 && supabaseAnonKey && supabaseAnonKey.length > 0;
+
+export const supabase = isConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)
   : new Proxy({} as any, {
       get: (target, prop) => {

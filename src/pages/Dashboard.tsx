@@ -105,7 +105,7 @@ export default function DashboardOverview() {
 
   return (
     <div className="flex flex-col gap-8 p-2">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <StatCard 
           title="Total Leads" 
           value={stats.leads.toLocaleString()} 
@@ -136,8 +136,8 @@ export default function DashboardOverview() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 neumorph rounded-[2.5rem] p-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="md:col-span-2 neumorph rounded-[2.5rem] p-6 md:p-8">
           <div className="flex justify-between items-center mb-8">
             <h3 className="text-xl font-display font-bold text-slate-800 dark:text-slate-200">Outreach Performance</h3>
             <div className="flex gap-2">
@@ -145,15 +145,15 @@ export default function DashboardOverview() {
               <button className="px-4 py-2 rounded-xl text-sm font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50">Monthly</button>
             </div>
           </div>
-          <div className="h-64 flex items-end justify-between gap-4 px-4">
+          <div className="h-48 md:h-64 flex items-end justify-between gap-2 md:gap-4 px-2 md:px-4">
             {[40, 65, 45, 90, 55, 75, 60].map((h, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-3">
+              <div key={i} className="flex-1 flex flex-col items-center gap-2 md:gap-3">
                 <motion.div 
                   initial={{ height: 0 }}
                   animate={{ height: `${h}%` }}
-                  className="w-full max-w-[40px] bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-xl shadow-lg shadow-blue-500/20"
+                  className="w-full max-w-[32px] md:max-w-[40px] bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-lg md:rounded-t-xl shadow-lg shadow-blue-500/20"
                 />
-                <span className="text-xs font-bold text-slate-400 dark:text-slate-500">Day {i+1}</span>
+                <span className="text-[10px] md:text-xs font-bold text-slate-400 dark:text-slate-500">Day {i+1}</span>
               </div>
             ))}
           </div>

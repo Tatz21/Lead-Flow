@@ -11,13 +11,15 @@ import {
   Clock,
   ExternalLink,
   Trash2,
-  Plus
+  Plus,
+  AlertCircle
 } from 'lucide-react';
 import { cn } from '../lib/utils.ts';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import axios from 'axios';
+import ConfirmModal from '../components/ConfirmModal.tsx';
 
 import Papa from 'papaparse';
 import { GoogleGenAI } from "@google/genai";
@@ -29,6 +31,8 @@ export default function LeadsTable() {
   const [uploading, setUploading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [newLead, setNewLead] = useState({
     first_name: '',
     last_name: '',
@@ -39,7 +43,7 @@ export default function LeadsTable() {
     source: 'LinkedIn'
   });
 
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
 
   const fetchLeads = useCallback(async () => {
     if (!user) return;
@@ -86,7 +90,8 @@ export default function LeadsTable() {
     e.preventDefault();
     if (!user) return;
     try {
-      const { error } = await supabase.from('leads').insert([{
+      setError(null);
+      const { error: supabaseError } = await supabase.from('leads').insert([{
         ...newLead,
         user_id: user.uid,
         status: 'Pending',
@@ -95,7 +100,7 @@ export default function LeadsTable() {
         is_email_sent: false
       }]);
 
-      if (error) throw error;
+      if (supabaseError) throw supabaseError;
       
       setShowAddModal(false);
       setNewLead({
@@ -107,14 +112,20 @@ export default function LeadsTable() {
         value: 0,
         source: 'LinkedIn'
       });
-    } catch (error) {
-      console.error("Error adding lead:", error);
-      alert("Failed to add lead. Make sure the 'leads' table exists in Supabase.");
+    } catch (err: any) {
+      console.error("Error adding lead:", err);
+      setError(err.message || "Failed to add lead. Make sure the 'leads' table exists in Supabase.");
     }
   };
 
   const cleanLeadWithAI = async (lead: any) => {
     try {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        console.warn("GEMINI_API_KEY is missing. Skipping AI cleaning.");
+        return { ...lead, is_cleaned: false };
+      }
+      const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: `Clean and structure this lead data into a JSON object with fields: first_name, last_name, company, website. 
@@ -145,6 +156,7 @@ export default function LeadsTable() {
       complete: async (results) => {
         const rawLeads = results.data;
         try {
+          setError(null);
           for (const rawLead of rawLeads as any[]) {
             // Basic mapping if headers don't match exactly
             const mappedLead = {
@@ -159,17 +171,18 @@ export default function LeadsTable() {
 
             const cleanedLead = await cleanLeadWithAI(mappedLead);
             
-            await supabase.from('leads').insert([{
+            const { error: supabaseError } = await supabase.from('leads').insert([{
               ...cleanedLead,
               user_id: user.uid,
               status: 'Verified',
               is_email_found: !!cleanedLead.email,
               is_email_sent: false
             }]);
+            if (supabaseError) throw supabaseError;
           }
-        } catch (error) {
-          console.error("Upload processing failed:", error);
-          alert("Error processing CSV. Please ensure the 'leads' table exists in Supabase.");
+        } catch (err: any) {
+          console.error("Upload processing failed:", err);
+          setError(err.message || "Error processing CSV. Please ensure the 'leads' table exists in Supabase.");
         } finally {
           setUploading(false);
         }
@@ -182,18 +195,17 @@ export default function LeadsTable() {
   }, [user]);
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Delete this lead?")) return;
     try {
-      const { error } = await supabase
+      setError(null);
+      const { error: supabaseError } = await supabase
         .from('leads')
         .delete()
         .eq('id', id);
       
-      if (error) throw error;
-      // fetchLeads() will be triggered by subscription
-    } catch (error) {
-      console.error("Error deleting lead:", error);
-      alert("Failed to delete lead.");
+      if (supabaseError) throw supabaseError;
+    } catch (err: any) {
+      console.error("Error deleting lead:", err);
+      setError(err.message || "Failed to delete lead.");
     }
   };
 
@@ -209,6 +221,31 @@ export default function LeadsTable() {
 
   return (
     <div className="flex flex-col gap-4 md:gap-6 p-2 pb-24 md:pb-2">
+      <ConfirmModal 
+        isOpen={!!confirmDeleteId}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={() => confirmDeleteId && handleDelete(confirmDeleteId)}
+        title="Delete Lead"
+        message="Are you sure you want to delete this lead? This action cannot be undone."
+      />
+
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="neumorph rounded-2xl p-4 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 flex items-center gap-3 text-red-600 dark:text-red-400"
+          >
+            <AlertCircle className="w-5 h-5" />
+            <p className="text-sm font-medium">{error}</p>
+            <button onClick={() => setError(null)} className="ml-auto p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg">
+              <XCircle className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Add Lead Modal */}
       <AnimatePresence>
         {showAddModal && (
@@ -340,8 +377,8 @@ export default function LeadsTable() {
 
       {/* Table Section */}
       <div className="neumorph rounded-[2rem] md:rounded-[2.5rem] overflow-hidden flex flex-col">
-        <div className="p-4 md:p-8 border-b border-slate-200/50 flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="relative w-full md:w-96">
+        <div className="p-4 md:p-8 border-b border-slate-200/50 dark:border-slate-800/50 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="relative w-full sm:w-64 md:w-96">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input 
               type="text" 
@@ -351,13 +388,13 @@ export default function LeadsTable() {
               className="w-full pl-12 pr-4 py-3 neumorph-inset rounded-2xl focus:outline-none text-slate-700 dark:text-slate-200 text-sm"
             />
           </div>
-          <div className="flex w-full md:w-auto gap-3">
-            <button className="neumorph-sm p-3 rounded-xl text-slate-600 hover:text-blue-600 flex-1 md:flex-none flex justify-center">
+          <div className="flex w-full sm:w-auto gap-3">
+            <button className="neumorph-sm p-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-blue-600 flex-1 sm:flex-none flex justify-center">
               <Filter className="w-5 h-5" />
             </button>
             <button 
               onClick={() => setShowAddModal(true)}
-              className="neumorph-sm px-6 py-3 rounded-xl font-bold text-blue-600 hover:scale-105 transition-all flex items-center justify-center gap-2 flex-[2] md:flex-none"
+              className="neumorph-sm px-4 md:px-6 py-3 rounded-xl font-bold text-blue-600 dark:text-blue-400 hover:scale-105 transition-all flex items-center justify-center gap-2 flex-[2] sm:flex-none text-sm md:text-base"
             >
               <Plus className="w-5 h-5" /> Add Lead
             </button>
@@ -379,7 +416,7 @@ export default function LeadsTable() {
                   </div>
                 </div>
                 <button 
-                  onClick={() => handleDelete(lead.id)}
+                  onClick={() => setConfirmDeleteId(lead.id)}
                   className="p-2 neumorph-sm rounded-lg text-rose-400 hover:text-rose-600"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -455,7 +492,7 @@ export default function LeadsTable() {
                   </td>
                   <td className="px-8 py-6">
                     <button 
-                      onClick={() => handleDelete(lead.id)}
+                      onClick={() => setConfirmDeleteId(lead.id)}
                       className="p-2 neumorph-sm rounded-lg opacity-0 group-hover:opacity-100 transition-all text-rose-400 hover:text-rose-600"
                     >
                       <Trash2 className="w-5 h-5" />

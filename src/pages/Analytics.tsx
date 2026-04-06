@@ -231,15 +231,15 @@ export default function Analytics() {
   };
 
   return (
-    <div className="flex flex-col gap-8 p-2 pb-24 md:pb-2">
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3 neumorph rounded-[2.5rem] p-8 flex flex-col items-center justify-center min-h-[600px]">
-          <h3 className="text-2xl font-display font-bold mb-8 self-start text-slate-800 dark:text-slate-200">Orbital Pipeline Timeline</h3>
+    <div className="flex flex-col gap-6 md:gap-8 p-2 pb-24 md:pb-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="md:col-span-2 lg:col-span-3 neumorph rounded-[2.5rem] p-6 md:p-8 flex flex-col items-center justify-center min-h-[400px] md:min-h-[600px]">
+          <h3 className="text-xl md:text-2xl font-display font-bold mb-4 md:mb-8 self-start text-slate-800 dark:text-slate-200">Orbital Pipeline Timeline</h3>
           <svg ref={svgRef} className="w-full max-w-[800px] h-auto" />
         </div>
         
-        <div className="flex flex-col gap-6">
-          <div className="neumorph rounded-[2.5rem] p-8">
+        <div className="flex flex-col gap-4 md:gap-6">
+          <div className="neumorph rounded-[2.5rem] p-6 md:p-8">
             <h4 className="font-bold mb-4 text-slate-800 dark:text-slate-200">Pipeline Health</h4>
             <div className="space-y-4">
               {healthData.map((item, i) => (
@@ -260,7 +260,7 @@ export default function Analytics() {
             </div>
           </div>
 
-          <div className="neumorph rounded-[2.5rem] p-8 flex-1">
+          <div className="neumorph rounded-[2.5rem] p-6 md:p-8 flex-1">
             <h4 className="font-bold mb-4 text-slate-800 dark:text-slate-200">Top Channels</h4>
             <div className="space-y-6">
               {channelData.length > 0 ? channelData.map(([name, count], i) => (
@@ -279,9 +279,9 @@ export default function Analytics() {
       </div>
 
       {/* Campaign Performance Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="neumorph rounded-[2.5rem] p-8 min-h-[400px]">
-          <h3 className="text-xl font-display font-bold mb-8 text-slate-800 dark:text-slate-200">Campaign Engagement</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+        <div className="neumorph rounded-[2.5rem] p-6 md:p-8 min-h-[350px] md:min-h-[400px]">
+          <h3 className="text-lg md:text-xl font-display font-bold mb-6 md:mb-8 text-slate-800 dark:text-slate-200">Campaign Engagement</h3>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stats.campaignPerformance}>
@@ -316,8 +316,8 @@ export default function Analytics() {
           </div>
         </div>
 
-        <div className="neumorph rounded-[2.5rem] p-8 min-h-[400px]">
-          <h3 className="text-xl font-display font-bold mb-8 text-slate-800 dark:text-slate-200">Conversion Funnel</h3>
+        <div className="neumorph rounded-[2.5rem] p-6 md:p-8 min-h-[350px] md:min-h-[400px]">
+          <h3 className="text-lg md:text-xl font-display font-bold mb-6 md:mb-8 text-slate-800 dark:text-slate-200">Conversion Funnel</h3>
           <div className="flex flex-col justify-center h-full gap-6 pb-8">
             {[
               { label: "Total Sent", value: stats.campaignPerformance.reduce((acc, curr) => acc + curr.sent, 0), color: "text-blue-500" },

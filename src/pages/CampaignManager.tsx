@@ -2,13 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Plus, Play, Pause, Trash2, Mail, Clock, ChevronRight, Target, 
   Users, MousePointer2, MessageSquare, Edit3, Copy, X, Save,
-  Zap, BarChart2, TrendingUp, Star
+  Zap, BarChart2, TrendingUp, Star, AlertCircle, XCircle
 } from 'lucide-react';
 import { cn } from '../lib/utils.ts';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase.ts';
 import { useAuth } from '../context/AuthContext.tsx';
+import ConfirmModal from '../components/ConfirmModal.tsx';
 
 const TEMPLATES = [
   {
@@ -257,16 +258,16 @@ const CampaignCard = ({ campaign, onEdit, onDuplicate, onDelete }: any) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
         {[
           { label: "Leads", value: stats.leads, icon: Users },
           { label: "Sent", value: stats.sent, icon: Mail },
           { label: "Revenue", value: `₹${(stats.revenue || 0).toLocaleString('en-IN')}`, icon: TrendingUp, color: "text-emerald-600 dark:text-emerald-400" },
           { label: "Conv.", value: `${conv}%`, icon: Zap, color: "text-blue-600 dark:text-blue-400" }
         ].map((stat, i) => (
-          <div key={i} className="neumorph-sm p-4 rounded-2xl text-center">
-            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">{stat.label}</p>
-            <p className={cn("text-lg font-display font-bold", stat.color || "text-slate-800 dark:text-slate-200")}>{stat.value}</p>
+          <div key={i} className="neumorph-sm p-3 md:p-4 rounded-2xl text-center">
+            <p className="text-[9px] md:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">{stat.label}</p>
+            <p className={cn("text-base md:text-lg font-display font-bold", stat.color || "text-slate-800 dark:text-slate-200")}>{stat.value}</p>
           </div>
         ))}
       </div>
@@ -295,6 +296,8 @@ export default function CampaignManager() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<any>(null);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const fetchCampaigns = useCallback(async () => {
     if (!user) return;
@@ -329,25 +332,27 @@ export default function CampaignManager() {
   const handleSave = async (data: any) => {
     if (!user) return;
     try {
+      setError(null);
       if (data.id) {
         const { id, created_at, ...updateData } = data;
-        const { error } = await supabase
+        const { error: supabaseError } = await supabase
           .from('campaigns')
           .update(updateData)
           .eq('id', id);
-        if (error) throw error;
+        if (supabaseError) throw supabaseError;
       } else {
-        const { error } = await supabase.from('campaigns').insert([{
+        const { error: supabaseError } = await supabase.from('campaigns').insert([{
           ...data,
           user_id: user.uid,
           stats: { leads: 0, sent: 0, opened: 0, clicked: 0, replies: 0, conversions: 0, revenue: 0 }
         }]);
-        if (error) throw error;
+        if (supabaseError) throw supabaseError;
       }
       setIsFormOpen(false);
       setEditingCampaign(null);
-    } catch (error) {
-      console.error("Error saving campaign:", error);
+    } catch (err: any) {
+      console.error("Error saving campaign:", err);
+      setError(err.message || "Failed to save campaign.");
     }
   };
 
@@ -357,17 +362,22 @@ export default function CampaignManager() {
     await handleSave({ ...rest, title: `${rest.title} (Copy)` });
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this campaign?")) return;
+  const performDelete = async (id: string) => {
     try {
-      const { error } = await supabase
+      setError(null);
+      const { error: supabaseError } = await supabase
         .from('campaigns')
         .delete()
         .eq('id', id);
-      if (error) throw error;
-    } catch (error) {
-      console.error("Error deleting campaign:", error);
+      if (supabaseError) throw supabaseError;
+    } catch (err: any) {
+      console.error("Error deleting campaign:", err);
+      setError(err.message || "Failed to delete campaign.");
     }
+  };
+
+  const handleDelete = (id: string) => {
+    setConfirmDeleteId(id);
   };
 
   const useTemplate = (template: any) => {
@@ -383,6 +393,31 @@ export default function CampaignManager() {
 
   return (
     <div className="flex flex-col gap-8 p-2">
+      <ConfirmModal 
+        isOpen={!!confirmDeleteId}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={() => confirmDeleteId && performDelete(confirmDeleteId)}
+        title="Delete Campaign"
+        message="Are you sure you want to delete this campaign? All associated sequence data will be removed."
+      />
+
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="neumorph rounded-2xl p-4 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 flex items-center gap-3 text-red-600 dark:text-red-400"
+          >
+            <AlertCircle className="w-5 h-5" />
+            <p className="text-sm font-medium">{error}</p>
+            <button onClick={() => setError(null)} className="ml-auto p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg">
+              <XCircle className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-3xl font-display font-bold text-slate-800 dark:text-slate-200">Campaigns</h2>
@@ -430,7 +465,7 @@ export default function CampaignManager() {
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
         {campaigns.map(campaign => (
           <CampaignCard 
             key={campaign.id} 
@@ -442,13 +477,13 @@ export default function CampaignManager() {
         ))}
         
         {campaigns.length === 0 && (
-          <div className="lg:col-span-2 neumorph rounded-[2.5rem] p-20 flex flex-col items-center justify-center gap-6 text-center">
-            <div className="w-20 h-20 neumorph-sm rounded-3xl flex items-center justify-center text-slate-300">
-              <Zap className="w-10 h-10" />
+          <div className="md:col-span-2 neumorph rounded-[2.5rem] p-12 md:p-20 flex flex-col items-center justify-center gap-6 text-center">
+            <div className="w-16 h-16 md:w-20 md:h-20 neumorph-sm rounded-3xl flex items-center justify-center text-slate-300">
+              <Zap className="w-8 h-8 md:w-10 md:h-10" />
             </div>
             <div>
-              <h3 className="text-2xl font-display font-bold text-slate-800">No campaigns yet</h3>
-              <p className="text-slate-500 max-w-xs mx-auto">Create your first campaign or use a template to start reaching out to leads.</p>
+              <h3 className="text-xl md:text-2xl font-display font-bold text-slate-800 dark:text-slate-200">No campaigns yet</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs mx-auto">Create your first campaign or use a template to start reaching out to leads.</p>
             </div>
             <button 
               onClick={() => setIsFormOpen(true)}

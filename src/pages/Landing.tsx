@@ -107,11 +107,11 @@ export default function Landing() {
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-bold mb-8">
               <Star className="w-4 h-4 fill-blue-400" /> Trusted by 500+ Sales Teams
             </div>
-            <h1 className="text-6xl md:text-8xl font-display font-bold tracking-tight mb-8 leading-[1.05]">
+            <h1 className="text-4xl sm:text-6xl md:text-8xl font-display font-bold tracking-tight mb-6 md:mb-8 leading-[1.1] md:leading-[1.05] dark:text-white">
               Scale your outreach <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500">without the grind.</span>
             </h1>
-            <p className="text-xl text-slate-400 mb-12 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg md:text-xl text-slate-400 mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed">
               The only AI-powered outreach suite that handles lead cleaning, web scraping, and personalized cold emails in one seamless flow.
             </p>
             
@@ -138,7 +138,7 @@ export default function Landing() {
             <p className="text-slate-400 text-lg max-w-2xl mx-auto">Stop juggling tools. LeadFlow AI brings your entire sales stack into one professional dashboard.</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
             <FeatureCard 
               icon={Globe}
               title="Smart Web Scraping"
@@ -190,7 +190,7 @@ export default function Landing() {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
               {[
                 { label: "Open Rate", value: "48%" },
                 { label: "Reply Rate", value: "12%" },
