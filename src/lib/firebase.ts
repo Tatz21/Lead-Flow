@@ -63,17 +63,13 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 }
 
 async function testConnection() {
-  const path = 'test/connection';
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
     if (error instanceof Error && error.message.includes('the client is offline')) {
       console.error("Please check your Firebase configuration.");
     }
-    // Following the spec to throw structured error if it's a permission issue or other firestore error
-    if (error instanceof Error && (error.message.includes('permission') || error.message.includes('insufficient'))) {
-      handleFirestoreError(error, OperationType.GET, path);
-    }
+    // Skip logging for other errors, as this is simply a connection test.
   }
 }
 testConnection();
