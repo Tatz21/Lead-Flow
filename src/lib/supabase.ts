@@ -11,17 +11,50 @@ export const supabase = isConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)
   : new Proxy({} as any, {
       get: (target, prop) => {
-        if (prop === 'from' || prop === 'auth' || prop === 'storage' || prop === 'functions') {
+        const createMock = () => {
+          const mock: any = {
+            select: () => mock,
+            insert: () => mock,
+            update: () => mock,
+            delete: () => mock,
+            eq: () => mock,
+            neq: () => mock,
+            gt: () => mock,
+            lt: () => mock,
+            gte: () => mock,
+            lte: () => mock,
+            like: () => mock,
+            ilike: () => mock,
+            is: () => mock,
+            in: () => mock,
+            contains: () => mock,
+            containedBy: () => mock,
+            range: () => mock,
+            textSearch: () => mock,
+            match: () => mock,
+            not: () => mock,
+            or: () => mock,
+            filter: () => mock,
+            order: () => mock,
+            limit: () => mock,
+            range_adj: () => mock,
+            single: () => mock,
+            maybeSingle: () => mock,
+            csv: () => mock,
+            abortSignal: () => mock,
+            then: (onfulfilled: any) => Promise.resolve(onfulfilled({ data: null, error: new Error('Supabase not configured') })),
+            catch: (onrejected: any) => Promise.resolve(onrejected(new Error('Supabase not configured'))),
+            on: () => mock,
+            subscribe: () => ({ unsubscribe: () => {} }),
+            channel: () => mock,
+          };
+          return mock;
+        };
+
+        if (['from', 'auth', 'storage', 'functions', 'channel'].includes(prop as string)) {
           return () => {
-            console.error('Supabase client used but VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY is not set.');
-            return {
-              select: () => ({ data: null, error: new Error('Supabase not configured') }),
-              insert: () => ({ error: new Error('Supabase not configured') }),
-              update: () => ({ error: new Error('Supabase not configured') }),
-              delete: () => ({ error: new Error('Supabase not configured') }),
-              on: () => ({ subscribe: () => ({ unsubscribe: () => {} }) }),
-              channel: () => ({ on: () => ({ subscribe: () => ({ unsubscribe: () => {} }) }) }),
-            };
+            console.error(`Supabase client used but VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY is not set. Action: ${String(prop)}`);
+            return createMock();
           };
         }
         return undefined;

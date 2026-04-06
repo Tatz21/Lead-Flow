@@ -174,6 +174,8 @@ export default function Analytics() {
 
     // Animation loop
     let angle = 0;
+    let animationFrameId: number;
+    
     const animate = () => {
       angle += 0.01;
       nodes.attr("transform", d => {
@@ -181,7 +183,7 @@ export default function Analytics() {
         const y = centerY + d.radius * Math.sin(angle * d.speed * 100);
         return `translate(${x}, ${y})`;
       });
-      requestAnimationFrame(animate);
+      animationFrameId = requestAnimationFrame(animate);
     };
 
     animate();
@@ -203,6 +205,11 @@ export default function Analytics() {
       .attr("fill", "#3b82f6")
       .text("PIPELINE");
 
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
   }, [stats, theme]);
 
   const totalCampaigns = stats.health.active + stats.health.paused + stats.health.draft;

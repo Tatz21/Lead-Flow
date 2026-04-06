@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { 
   Settings as SettingsIcon, 
@@ -10,7 +10,7 @@ import {
   Check,
   AlertTriangle
 } from 'lucide-react';
-import { useState } from 'react';
+import { cn } from '../lib/utils.ts';
 
 export default function Settings() {
   const [copied, setCopied] = useState(false);
@@ -68,10 +68,10 @@ CREATE POLICY "Users can only access their own campaigns" ON campaigns FOR ALL U
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="neumorph rounded-[2.5rem] p-6 bg-amber-50/50 border border-amber-200/50"
+          className="neumorph rounded-[2.5rem] p-6 bg-amber-50/50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-800/50"
         >
-          <div className="flex items-center gap-4 text-amber-800">
-            <div className="p-3 bg-amber-100 rounded-2xl">
+          <div className="flex items-center gap-4 text-amber-800 dark:text-amber-400">
+            <div className="p-3 bg-amber-100 dark:bg-amber-900/20 rounded-2xl">
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div>
@@ -85,17 +85,17 @@ CREATE POLICY "Users can only access their own campaigns" ON campaigns FOR ALL U
         <div className="lg:col-span-2 space-y-8">
           <div className="neumorph rounded-[2.5rem] p-8">
             <div className="flex items-center gap-4 mb-8">
-              <div className="p-3 neumorph-sm rounded-2xl text-blue-600">
+              <div className="p-3 neumorph-sm rounded-2xl text-blue-600 dark:text-blue-400">
                 <Database className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-xl font-display font-bold text-slate-800">Database Setup</h3>
-                <p className="text-sm text-slate-500">Run this SQL in your Supabase SQL Editor to set up the required tables.</p>
+                <h3 className="text-xl font-display font-bold text-slate-800 dark:text-slate-200">Database Setup</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Run this SQL in your Supabase SQL Editor to set up the required tables.</p>
               </div>
             </div>
 
             <div className="relative">
-              <pre className="bg-slate-900 text-slate-300 p-6 rounded-2xl overflow-x-auto text-xs font-mono leading-relaxed">
+              <pre className="bg-slate-900 dark:bg-slate-950 text-slate-300 dark:text-slate-400 p-6 rounded-2xl overflow-x-auto text-xs font-mono leading-relaxed">
                 {sqlSchema}
               </pre>
               <button 
@@ -109,23 +109,23 @@ CREATE POLICY "Users can only access their own campaigns" ON campaigns FOR ALL U
 
           <div className="neumorph rounded-[2.5rem] p-8">
             <div className="flex items-center gap-4 mb-8">
-              <div className="p-3 neumorph-sm rounded-2xl text-blue-600">
+              <div className="p-3 neumorph-sm rounded-2xl text-blue-600 dark:text-blue-400">
                 <Shield className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-xl font-display font-bold text-slate-800">Security & Privacy</h3>
-                <p className="text-sm text-slate-500">Manage your account security and data privacy settings.</p>
+                <h3 className="text-xl font-display font-bold text-slate-800 dark:text-slate-200">Security & Privacy</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Manage your account security and data privacy settings.</p>
               </div>
             </div>
             
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 neumorph-sm rounded-2xl">
                 <div>
-                  <p className="font-bold text-slate-800">Two-Factor Authentication</p>
-                  <p className="text-xs text-slate-500">Add an extra layer of security to your account.</p>
+                  <p className="font-bold text-slate-800 dark:text-slate-200">Two-Factor Authentication</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Add an extra layer of security to your account.</p>
                 </div>
-                <div className="w-12 h-6 bg-slate-200 rounded-full relative cursor-pointer">
-                  <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm" />
+                <div className="w-12 h-6 bg-slate-200 dark:bg-slate-800 rounded-full relative cursor-pointer">
+                  <div className="absolute left-1 top-1 w-4 h-4 bg-white dark:bg-slate-600 rounded-full shadow-sm" />
                 </div>
               </div>
             </div>
@@ -135,21 +135,21 @@ CREATE POLICY "Users can only access their own campaigns" ON campaigns FOR ALL U
         <div className="space-y-8">
           <div className="neumorph rounded-[2.5rem] p-8">
             <div className="flex flex-col items-center text-center gap-4">
-              <div className="w-24 h-24 neumorph rounded-full flex items-center justify-center text-blue-600">
+              <div className="w-24 h-24 neumorph rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400">
                 <User className="w-12 h-12" />
               </div>
               <div>
-                <h3 className="text-xl font-display font-bold text-slate-800">Profile Settings</h3>
-                <p className="text-sm text-slate-500">mondaldebdip007@gmail.com</p>
+                <h3 className="text-xl font-display font-bold text-slate-800 dark:text-slate-200">Profile Settings</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">mondaldebdip007@gmail.com</p>
               </div>
-              <button className="w-full py-4 neumorph-sm rounded-2xl font-bold text-blue-600 hover:scale-[1.02] transition-all">
+              <button className="w-full py-4 neumorph-sm rounded-2xl font-bold text-blue-600 dark:text-blue-400 hover:scale-[1.02] transition-all">
                 Edit Profile
               </button>
             </div>
           </div>
 
           <div className="neumorph rounded-[2.5rem] p-8">
-            <h4 className="font-bold text-slate-800 mb-4">Notifications</h4>
+            <h4 className="font-bold text-slate-800 dark:text-slate-200 mb-4">Notifications</h4>
             <div className="space-y-4">
               {[
                 { label: "Email Alerts", icon: Bell },
@@ -158,11 +158,11 @@ CREATE POLICY "Users can only access their own campaigns" ON campaigns FOR ALL U
               ].map((item, i) => (
                 <div key={i} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <item.icon className="w-4 h-4 text-slate-400" />
-                    <span className="text-sm font-medium text-slate-600">{item.label}</span>
+                    <item.icon className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                    <span className="text-sm font-medium text-slate-600 dark:text-slate-400">{item.label}</span>
                   </div>
-                  <div className="w-10 h-5 bg-blue-600 rounded-full relative">
-                    <div className="absolute right-1 top-1 w-3 h-3 bg-white rounded-full" />
+                  <div className="w-10 h-5 bg-blue-600 dark:bg-blue-700 rounded-full relative">
+                    <div className="absolute right-1 top-1 w-3 h-3 bg-white dark:bg-slate-200 rounded-full" />
                   </div>
                 </div>
               ))}
