@@ -220,8 +220,8 @@ export default function LeadsTable() {
               className="neumorph w-full max-w-xl p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] overflow-y-auto max-h-[90vh]"
             >
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl md:text-2xl font-display font-bold text-slate-800">Add New Lead</h3>
-                <button onClick={() => setShowAddModal(false)} className="p-2 neumorph-sm rounded-xl text-slate-400 hover:text-slate-600">
+                <h3 className="text-xl md:text-2xl font-display font-bold text-slate-800 dark:text-slate-200">Add New Lead</h3>
+                <button onClick={() => setShowAddModal(false)} className="p-2 neumorph-sm rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
                   <XCircle className="w-6 h-6" />
                 </button>
               </div>
@@ -331,10 +331,10 @@ export default function LeadsTable() {
           {uploading ? <div className="w-6 h-6 md:w-8 md:h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" /> : <Upload className="w-6 h-6 md:w-8 md:h-8" />}
         </div>
         <div className="text-center">
-          <h3 className="text-lg md:text-xl font-display font-bold text-slate-800">
+          <h3 className="text-lg md:text-xl font-display font-bold text-slate-800 dark:text-slate-200">
             {uploading ? 'Processing Leads...' : 'Upload Leads CSV'}
           </h3>
-          <p className="text-xs md:text-sm text-slate-500">Drag & drop or click to browse</p>
+          <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400">Drag & drop or click to browse</p>
         </div>
       </div>
 
@@ -348,7 +348,7 @@ export default function LeadsTable() {
               placeholder="Search leads..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 neumorph-inset rounded-2xl focus:outline-none text-slate-700 text-sm"
+              className="w-full pl-12 pr-4 py-3 neumorph-inset rounded-2xl focus:outline-none text-slate-700 dark:text-slate-200 text-sm"
             />
           </div>
           <div className="flex w-full md:w-auto gap-3">
@@ -419,33 +419,33 @@ export default function LeadsTable() {
                 <th className="px-8 py-6">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200/50">
+            <tbody className="divide-y divide-slate-200/50 dark:divide-slate-800/50">
               {filteredLeads.map((lead) => (
-                <tr key={lead.id} className="hover:bg-slate-50/50 transition-colors group">
+                <tr key={lead.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors group">
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 neumorph-sm rounded-xl flex items-center justify-center font-bold text-blue-600">
+                      <div className="w-10 h-10 neumorph-sm rounded-xl flex items-center justify-center font-bold text-blue-600 dark:text-blue-400">
                         {lead.first_name?.charAt(0) || 'L'}
                       </div>
                       <div>
-                        <p className="font-bold text-slate-800">{lead.first_name} {lead.last_name}</p>
-                        <p className="text-xs text-slate-500">{lead.email}</p>
+                        <p className="font-bold text-slate-800 dark:text-slate-200">{lead.first_name} {lead.last_name}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{lead.email}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-8 py-6 font-medium text-slate-600">{lead.company}</td>
-                  <td className="px-8 py-6 font-bold text-slate-800">₹{(lead.value || 0).toLocaleString('en-IN')}</td>
+                  <td className="px-8 py-6 font-medium text-slate-600 dark:text-slate-400">{lead.company}</td>
+                  <td className="px-8 py-6 font-bold text-slate-800 dark:text-slate-200">₹{(lead.value || 0).toLocaleString('en-IN')}</td>
                   <td className="px-8 py-6">
-                    <span className="px-3 py-1 bg-slate-100 rounded-full text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+                    <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                       {lead.source || 'Unknown'}
                     </span>
                   </td>
                   <td className="px-8 py-6">
                     <div className={cn(
                       "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                      lead.status === 'Verified' ? "bg-emerald-100 text-emerald-700" :
-                      lead.status === 'Pending' ? "bg-amber-100 text-amber-700" :
-                      "bg-rose-100 text-rose-700"
+                      lead.status === 'Verified' ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" :
+                      lead.status === 'Pending' ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
+                      "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400"
                     )}>
                       {lead.status === 'Verified' ? <CheckCircle2 className="w-3 h-3" /> :
                        lead.status === 'Pending' ? <Clock className="w-3 h-3" /> :

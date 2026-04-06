@@ -14,7 +14,9 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils.ts';
 import { useAuth } from '../context/AuthContext.tsx';
+import { useTheme } from '../context/ThemeContext.tsx';
 import { logout } from '../lib/firebase.ts';
+import { Moon, Sun } from 'lucide-react';
 
 const SidebarItem = ({ icon: Icon, label, to, active, onClick }: { icon: any, label: string, to: string, active?: boolean, onClick?: () => void }) => (
   <Link 
@@ -37,6 +39,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
 
   const handleLogout = async () => {
@@ -137,6 +140,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </h2>
           </div>
           <div className="flex items-center gap-4">
+            <button 
+              onClick={toggleTheme}
+              className="p-3 neumorph-sm rounded-xl text-slate-600 dark:text-slate-400 hover:text-blue-600 transition-all"
+              title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+            >
+              {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+            </button>
             <div className="neumorph-sm px-3 py-2 md:px-4 md:py-2 rounded-xl flex items-center gap-3">
               {user?.photoURL ? (
                 <img src={user.photoURL} alt={user.displayName || ''} className="w-6 h-6 md:w-8 md:h-8 rounded-lg" />

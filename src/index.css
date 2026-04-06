@@ -5,18 +5,37 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Outfit", sans-serif;
 
-  --color-soft-bg: #e0e5ec;
-  --color-soft-shadow-light: #ffffff;
-  --color-soft-shadow-dark: #a3b1c6;
+  --color-soft-bg: var(--soft-bg);
+  --color-soft-shadow-light: var(--soft-shadow-light);
+  --color-soft-shadow-dark: var(--soft-shadow-dark);
   
   --shadow-neumorph: 9px 9px 16px var(--color-soft-shadow-dark), -9px -9px 16px var(--color-soft-shadow-light);
   --shadow-neumorph-inset: inset 6px 6px 12px var(--color-soft-shadow-dark), inset -6px -6px 12px var(--color-soft-shadow-light);
   --shadow-neumorph-sm: 4px 4px 8px var(--color-soft-shadow-dark), -4px -4px 8px var(--color-soft-shadow-light);
 }
 
+:root {
+  --soft-bg: #e0e5ec;
+  --soft-shadow-light: #ffffff;
+  --soft-shadow-dark: #a3b1c6;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+}
+
+.dark {
+  --soft-bg: #1a1d23;
+  --soft-shadow-light: #252a33;
+  --soft-shadow-dark: #0f1115;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+}
+
 @layer base {
   body {
-    @apply bg-soft-bg text-slate-800 font-sans;
+    @apply bg-soft-bg text-slate-800 font-sans transition-colors duration-300;
+  }
+  .dark body {
+    @apply text-slate-200;
   }
 }
 

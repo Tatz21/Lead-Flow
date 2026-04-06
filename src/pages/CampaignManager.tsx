@@ -117,28 +117,28 @@ const CampaignForm = ({ campaign, onClose, onSave }: any) => {
         animate={{ scale: 1, y: 0 }}
         className="neumorph w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-[2.5rem] flex flex-col"
       >
-        <div className="p-8 border-b border-slate-200/50 flex justify-between items-center">
-          <h3 className="text-2xl font-display font-bold text-slate-800">
+        <div className="p-8 border-b border-slate-200/50 dark:border-slate-800/50 flex justify-between items-center">
+          <h3 className="text-2xl font-display font-bold text-slate-800 dark:text-slate-200">
             {campaign?.id ? 'Edit Campaign' : 'Create New Campaign'}
           </h3>
-          <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-xl transition-all">
+          <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-all">
             <X className="w-6 h-6 text-slate-400" />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-8 space-y-8">
           <div className="space-y-4">
-            <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Campaign Details</label>
+            <label className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Campaign Details</label>
             <input 
               type="text" 
               placeholder="Campaign Title"
-              className="w-full px-6 py-4 neumorph-inset rounded-2xl focus:outline-none text-slate-700 font-medium"
+              className="w-full px-6 py-4 neumorph-inset rounded-2xl focus:outline-none text-slate-700 dark:text-slate-200 font-medium"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             />
             <textarea 
               placeholder="Campaign Description"
-              className="w-full px-6 py-4 neumorph-inset rounded-2xl focus:outline-none text-slate-700 font-medium min-h-[100px]"
+              className="w-full px-6 py-4 neumorph-inset rounded-2xl focus:outline-none text-slate-700 dark:text-slate-200 font-medium min-h-[100px]"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             />
@@ -224,14 +224,14 @@ const CampaignCard = ({ campaign, onEdit, onDuplicate, onDelete }: any) => {
             <Target className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-xl font-display font-bold text-slate-800">{campaign.title}</h3>
+            <h3 className="text-xl font-display font-bold text-slate-800 dark:text-slate-200">{campaign.title}</h3>
             <div className="flex items-center gap-2 mt-1">
               <div className={cn(
                 "w-2 h-2 rounded-full",
                 campaign.status === 'Active' ? "bg-emerald-500" : 
                 campaign.status === 'Paused' ? "bg-amber-500" : "bg-slate-400"
               )} />
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{campaign.status}</span>
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{campaign.status}</span>
             </div>
           </div>
         </div>
@@ -261,12 +261,12 @@ const CampaignCard = ({ campaign, onEdit, onDuplicate, onDelete }: any) => {
         {[
           { label: "Leads", value: stats.leads, icon: Users },
           { label: "Sent", value: stats.sent, icon: Mail },
-          { label: "Revenue", value: `₹${(stats.revenue || 0).toLocaleString('en-IN')}`, icon: TrendingUp, color: "text-emerald-600" },
-          { label: "Conv.", value: `${conv}%`, icon: Zap, color: "text-blue-600" }
+          { label: "Revenue", value: `₹${(stats.revenue || 0).toLocaleString('en-IN')}`, icon: TrendingUp, color: "text-emerald-600 dark:text-emerald-400" },
+          { label: "Conv.", value: `${conv}%`, icon: Zap, color: "text-blue-600 dark:text-blue-400" }
         ].map((stat, i) => (
           <div key={i} className="neumorph-sm p-4 rounded-2xl text-center">
-            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">{stat.label}</p>
-            <p className={cn("text-lg font-display font-bold", stat.color || "text-slate-800")}>{stat.value}</p>
+            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">{stat.label}</p>
+            <p className={cn("text-lg font-display font-bold", stat.color || "text-slate-800 dark:text-slate-200")}>{stat.value}</p>
           </div>
         ))}
       </div>
@@ -385,8 +385,8 @@ export default function CampaignManager() {
     <div className="flex flex-col gap-8 p-2">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-display font-bold text-slate-800">Campaigns</h2>
-          <p className="text-slate-500">Manage your outreach sequences and follow-ups</p>
+          <h2 className="text-3xl font-display font-bold text-slate-800 dark:text-slate-200">Campaigns</h2>
+          <p className="text-slate-500 dark:text-slate-400">Manage your outreach sequences and follow-ups</p>
         </div>
         <div className="flex gap-3">
           <button 
