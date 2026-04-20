@@ -12,7 +12,8 @@ import {
   ExternalLink,
   Trash2,
   Plus,
-  AlertCircle
+  AlertCircle,
+  ArrowUpRight
 } from 'lucide-react';
 import { cn } from '../lib/utils.ts';
 import { motion, AnimatePresence } from 'motion/react';
@@ -29,6 +30,9 @@ export default function LeadsTable() {
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadTotal, setUploadTotal] = useState(0);
+  const [uploadSummary, setUploadSummary] = useState<{ success: number, failed: number } | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -147,7 +151,6 @@ export default function LeadsTable() {
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (!user || acceptedFiles.length === 0) return;
-    setUploading(true);
     
     const file = acceptedFiles[0];
     Papa.parse(file, {
@@ -155,31 +158,51 @@ export default function LeadsTable() {
       skipEmptyLines: true,
       complete: async (results) => {
         const rawLeads = results.data;
-        try {
-          setError(null);
-          for (const rawLead of rawLeads as any[]) {
-            // Basic mapping if headers don't match exactly
-            const mappedLead = {
-              first_name: rawLead.first_name || rawLead.FirstName || rawLead.Name?.split(' ')[0] || '',
-              last_name: rawLead.last_name || rawLead.LastName || rawLead.Name?.split(' ').slice(1).join(' ') || '',
-              email: rawLead.email || rawLead.Email || '',
-              company: rawLead.company || rawLead.Company || '',
-              website: rawLead.website || rawLead.Website || '',
-              value: Number(rawLead.value || rawLead.Value || 0),
-              source: rawLead.source || rawLead.Source || 'CSV Upload'
-            };
+        if (rawLeads.length === 0) return;
 
-            const cleanedLead = await cleanLeadWithAI(mappedLead);
-            
-            const { error: supabaseError } = await supabase.from('leads').insert([{
-              ...cleanedLead,
-              user_id: user.uid,
-              status: 'Verified',
-              is_email_found: !!cleanedLead.email,
-              is_email_sent: false
-            }]);
-            if (supabaseError) throw supabaseError;
+        setUploading(true);
+        setUploadProgress(0);
+        setUploadTotal(rawLeads.length);
+        setUploadSummary(null);
+        setError(null);
+
+        let successCount = 0;
+        let failedCount = 0;
+
+        try {
+          for (let i = 0; i < rawLeads.length; i++) {
+            const rawLead = rawLeads[i] as any;
+            try {
+              // Basic mapping if headers don't match exactly
+              const mappedLead = {
+                first_name: rawLead.first_name || rawLead.FirstName || rawLead.Name?.split(' ')[0] || '',
+                last_name: rawLead.last_name || rawLead.LastName || rawLead.Name?.split(' ').slice(1).join(' ') || '',
+                email: rawLead.email || rawLead.Email || '',
+                company: rawLead.company || rawLead.Company || '',
+                website: rawLead.website || rawLead.Website || '',
+                value: Number(rawLead.value || rawLead.Value || 0),
+                source: rawLead.source || rawLead.Source || 'CSV Upload'
+              };
+
+              const cleanedLead = await cleanLeadWithAI(mappedLead);
+              
+              const { error: supabaseError } = await supabase.from('leads').insert([{
+                ...cleanedLead,
+                user_id: user.uid,
+                status: 'Verified',
+                is_email_found: !!cleanedLead.email,
+                is_email_sent: false
+              }]);
+              
+              if (supabaseError) throw supabaseError;
+              successCount++;
+            } catch (err) {
+              console.error("Individual lead processing failed:", err);
+              failedCount++;
+            }
+            setUploadProgress(i + 1);
           }
+          setUploadSummary({ success: successCount, failed: failedCount });
         } catch (err: any) {
           console.error("Upload processing failed:", err);
           setError(err.message || "Error processing CSV. Please ensure the 'leads' table exists in Supabase.");
@@ -221,6 +244,44 @@ export default function LeadsTable() {
 
   return (
     <div className="flex flex-col gap-4 md:gap-6 p-2 pb-24 md:pb-2">
+      {/* CSV Upload Summary Modal */}
+      <AnimatePresence>
+        {uploadSummary && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="neumorph w-full max-w-sm p-8 rounded-[2.5rem] text-center"
+            >
+              <div className={cn(
+                "w-16 h-16 mx-auto mb-6 rounded-2xl flex items-center justify-center neumorph-sm",
+                uploadSummary.failed === 0 ? "text-emerald-600" : "text-amber-600"
+              )}>
+                {uploadSummary.failed === 0 ? <CheckCircle2 className="w-8 h-8" /> : <AlertCircle className="w-8 h-8" />}
+              </div>
+              <h3 className="text-2xl font-display font-bold text-slate-800 dark:text-slate-200 mb-2">Upload Complete</h3>
+              <div className="space-y-2 mb-8">
+                <p className="text-slate-600 dark:text-slate-400">
+                  Successfully processed <span className="font-bold text-emerald-600">{uploadSummary.success}</span> leads.
+                </p>
+                {uploadSummary.failed > 0 && (
+                  <p className="text-slate-600 dark:text-slate-400">
+                    Failed to process <span className="font-bold text-red-600">{uploadSummary.failed}</span> leads.
+                  </p>
+                )}
+              </div>
+              <button 
+                onClick={() => setUploadSummary(null)}
+                className="w-full py-4 bg-blue-600 rounded-2xl font-bold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-500 transition-all flex items-center justify-center gap-2"
+              >
+                View Leads <ArrowUpRight className="w-5 h-5" />
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <ConfirmModal 
         isOpen={!!confirmDeleteId}
         onClose={() => setConfirmDeleteId(null)}
@@ -358,18 +419,45 @@ export default function LeadsTable() {
       <div 
         {...getRootProps()} 
         className={cn(
-          "neumorph rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-12 border-4 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center gap-3 md:gap-4",
+          "neumorph rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-12 border-4 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center gap-3 md:gap-4 relative overflow-hidden",
           isDragActive ? "border-blue-400 bg-blue-50/50" : "border-slate-200/50",
-          uploading && "opacity-50 cursor-not-allowed"
+          uploading && "opacity-80 pointer-events-none"
         )}
       >
         <input {...getInputProps()} />
+        
+        {uploading && (
+          <div className="absolute inset-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-[2px] flex flex-col items-center justify-center p-6 md:p-12 z-10">
+            <div className="w-full max-w-md space-y-4">
+              <div className="flex justify-between items-end mb-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                  <span className="font-bold text-slate-800 dark:text-slate-200">Processing Leads...</span>
+                </div>
+                <span className="text-sm font-bold text-blue-600">
+                  {uploadProgress} / {uploadTotal}
+                </span>
+              </div>
+              <div className="h-3 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden neumorph-inset shadow-none">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${(uploadProgress / uploadTotal) * 100}%` }}
+                  className="h-full bg-gradient-to-r from-blue-600 to-indigo-500 shadow-lg shadow-blue-500/20"
+                />
+              </div>
+              <p className="text-center text-xs text-slate-500 dark:text-slate-400 font-medium">
+                AI is cleaning and enlisting your leads. Please wait.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="w-12 h-12 md:w-16 md:h-16 neumorph-sm rounded-2xl flex items-center justify-center text-blue-600">
-          {uploading ? <div className="w-6 h-6 md:w-8 md:h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" /> : <Upload className="w-6 h-6 md:w-8 md:h-8" />}
+          <Upload className="w-6 h-6 md:w-8 md:h-8" />
         </div>
         <div className="text-center">
           <h3 className="text-lg md:text-xl font-display font-bold text-slate-800 dark:text-slate-200">
-            {uploading ? 'Processing Leads...' : 'Upload Leads CSV'}
+            Upload Leads CSV
           </h3>
           <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400">Drag & drop or click to browse</p>
         </div>

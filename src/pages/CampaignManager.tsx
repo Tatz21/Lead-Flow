@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Plus, Play, Pause, Trash2, Mail, Clock, ChevronRight, Target, 
   Users, MousePointer2, MessageSquare, Edit3, Copy, X, Save,
-  Zap, BarChart2, TrendingUp, Star, AlertCircle, XCircle
+  Zap, BarChart2, TrendingUp, Star, AlertCircle, XCircle, Info
 } from 'lucide-react';
 import { cn } from '../lib/utils.ts';
 import { motion, AnimatePresence } from 'motion/react';
@@ -106,6 +106,14 @@ const CampaignForm = ({ campaign, onClose, onSave }: any) => {
     setFormData({ ...formData, sequence: newSeq });
   };
 
+  const placeholders = [
+    { key: '{{firstName}}', desc: 'Lead\'s first name' },
+    { key: '{{lastName}}', desc: 'Lead\'s last name' },
+    { key: '{{company}}', desc: 'Company name' },
+    { key: '{{website}}', desc: 'Website URL' },
+    { key: '{{city}}', desc: 'City (if provided)' },
+  ];
+
   return (
     <motion.div 
       initial={{ opacity: 0 }}
@@ -146,6 +154,26 @@ const CampaignForm = ({ campaign, onClose, onSave }: any) => {
           </div>
 
           <div className="space-y-6">
+            <div className="neumorph-sm p-5 rounded-2xl bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30">
+              <div className="flex items-center gap-3 mb-3 text-blue-600 dark:text-blue-400">
+                <Info className="w-5 h-5" />
+                <h4 className="text-sm font-bold uppercase tracking-wider">Personalization Guide</h4>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                Use these placeholders in your subject or body. They will be automatically replaced with lead data during outreach.
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {placeholders.map((p) => (
+                  <div key={p.key} className="flex flex-col gap-0.5">
+                    <code className="text-[10px] font-mono font-bold text-blue-600 dark:text-blue-400 rounded px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 w-fit">
+                      {p.key}
+                    </code>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-1 italic">{p.desc}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="flex justify-between items-center">
               <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Email Sequence</label>
               <button 
