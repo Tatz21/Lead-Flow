@@ -87,6 +87,13 @@ const CampaignForm = ({ campaign, onClose, onSave }: any) => {
     status: 'Draft',
     sequence: [{ day: 1, subject: '', body: '' }]
   });
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const statusColors = {
+    'Active': 'bg-emerald-500',
+    'Paused': 'bg-amber-500',
+    'Draft': 'bg-slate-400'
+  };
 
   const addStep = () => {
     setFormData({
@@ -104,6 +111,39 @@ const CampaignForm = ({ campaign, onClose, onSave }: any) => {
     const newSeq = [...formData.sequence];
     newSeq[index] = { ...newSeq[index], [field]: value };
     setFormData({ ...formData, sequence: newSeq });
+    setValidationError(null);
+  };
+
+  const validateSequence = () => {
+    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+    
+    for (let i = 0; i < formData.sequence.length; i++) {
+      const step = formData.sequence[i];
+      const subjectEmails = step.subject.match(emailRegex) || [];
+      const bodyEmails = step.body.match(emailRegex) || [];
+      
+      const allEmails = [...subjectEmails, ...bodyEmails];
+      for (const email of allEmails) {
+        // Double check invalid partial matches if needed, but the regex is pretty standard
+        // For this task, we want to ensure any hardcoded emails look valid.
+        if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
+          return `Step ${i + 1} contains an invalid email format: ${email}`;
+        }
+      }
+
+      if (!step.subject.trim()) return `Step ${i + 1} is missing a subject line.`;
+      if (!step.body.trim()) return `Step ${i + 1} is missing an email body.`;
+    }
+    return null;
+  };
+
+  const handleSave = () => {
+    const error = validateSequence();
+    if (error) {
+      setValidationError(error);
+      return;
+    }
+    onSave(formData);
   };
 
   const placeholders = [
@@ -136,21 +176,71 @@ const CampaignForm = ({ campaign, onClose, onSave }: any) => {
         </div>
 
         <div className="flex-1 overflow-y-auto p-8 space-y-8">
-          <div className="space-y-4">
-            <label className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Campaign Details</label>
-            <input 
-              type="text" 
-              placeholder="Campaign Title"
-              className="w-full px-6 py-4 neumorph-inset rounded-2xl focus:outline-none text-slate-700 dark:text-slate-200 font-medium"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            />
-            <textarea 
-              placeholder="Campaign Description"
-              className="w-full px-6 py-4 neumorph-inset rounded-2xl focus:outline-none text-slate-700 dark:text-slate-200 font-medium min-h-[100px]"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            />
+          <AnimatePresence>
+            {validationError && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="bg-rose-50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800 p-4 rounded-2xl flex items-center gap-3 text-rose-600 dark:text-rose-400 mb-4"
+              >
+                <AlertCircle className="w-5 h-5" />
+                <p className="text-sm font-bold">{validationError}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <label className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Campaign Details</label>
+              <input 
+                type="text" 
+                placeholder="Campaign Title"
+                className="w-full px-6 py-4 neumorph-inset rounded-2xl focus:outline-none text-slate-700 dark:text-slate-200 font-medium"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              />
+              <textarea 
+                placeholder="Campaign Description"
+                className="w-full px-6 py-4 neumorph-inset rounded-2xl focus:outline-none text-slate-700 dark:text-slate-200 font-medium min-h-[100px]"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-4">
+              <label className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Campaign Status</label>
+              <div className="grid grid-cols-1 gap-4">
+                {(['Active', 'Paused', 'Draft'] as const).map((status) => (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, status })}
+                    className={cn(
+                      "flex items-center justify-between px-6 py-4 rounded-2xl transition-all",
+                      formData.status === status 
+                        ? "neumorph-inset border-2 border-blue-500/50 bg-blue-50/10" 
+                        : "neumorph-sm hover:scale-[1.02]"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={cn("w-3 h-3 rounded-full", statusColors[status])} />
+                      <span className={cn(
+                        "font-bold uppercase tracking-wide",
+                        formData.status === status ? "text-blue-600 dark:text-blue-400" : "text-slate-500"
+                      )}>
+                        {status}
+                      </span>
+                    </div>
+                    {formData.status === status && (
+                      <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                        <Zap className="w-3 h-3 text-white fill-white" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="space-y-6">
@@ -226,7 +316,7 @@ const CampaignForm = ({ campaign, onClose, onSave }: any) => {
             Cancel
           </button>
           <button 
-            onClick={() => onSave(formData)}
+            onClick={handleSave}
             className="flex-1 py-4 bg-blue-600 rounded-2xl font-bold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-500 transition-all flex items-center justify-center gap-2"
           >
             <Save className="w-5 h-5" /> Save Campaign
@@ -237,7 +327,7 @@ const CampaignForm = ({ campaign, onClose, onSave }: any) => {
   );
 };
 
-const CampaignCard = ({ campaign, onEdit, onDuplicate, onDelete }: any) => {
+const CampaignCard = ({ campaign, onEdit, onDuplicate, onDelete, onToggleStatus }: any) => {
   const stats = campaign.stats || { leads: 0, sent: 0, opened: 0, clicked: 0, replies: 0, conversions: 0, revenue: 0 };
   const ctr = stats.sent > 0 ? ((stats.clicked / stats.sent) * 100).toFixed(1) : '0.0';
   const conv = stats.sent > 0 ? ((stats.conversions / stats.sent) * 100).toFixed(1) : '0.0';
@@ -249,9 +339,15 @@ const CampaignCard = ({ campaign, onEdit, onDuplicate, onDelete }: any) => {
     >
       <div className="flex justify-between items-start">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 neumorph-sm rounded-2xl flex items-center justify-center text-blue-600">
-            <Target className="w-6 h-6" />
-          </div>
+          <button 
+            onClick={() => onToggleStatus(campaign)}
+            className={cn(
+              "w-12 h-12 neumorph-sm rounded-2xl flex items-center justify-center transition-all",
+              campaign.status === 'Active' ? "text-emerald-500 hover:text-amber-500" : "text-slate-400 hover:text-emerald-500"
+            )}
+          >
+            {campaign.status === 'Active' ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+          </button>
           <div>
             <h3 className="text-xl font-display font-bold text-slate-800 dark:text-slate-200">{campaign.title}</h3>
             <div className="flex items-center gap-2 mt-1">
@@ -390,6 +486,12 @@ export default function CampaignManager() {
     await handleSave({ ...rest, title: `${rest.title} (Copy)` });
   };
 
+  const handleToggleStatus = async (campaign: any) => {
+    if (!user) return;
+    const newStatus = campaign.status === 'Active' ? 'Paused' : 'Active';
+    await handleSave({ ...campaign, status: newStatus });
+  };
+
   const performDelete = async (id: string) => {
     try {
       setError(null);
@@ -501,6 +603,7 @@ export default function CampaignManager() {
             onEdit={(c: any) => { setEditingCampaign(c); setIsFormOpen(true); }}
             onDuplicate={handleDuplicate}
             onDelete={handleDelete}
+            onToggleStatus={handleToggleStatus}
           />
         ))}
         

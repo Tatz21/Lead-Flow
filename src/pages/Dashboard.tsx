@@ -38,6 +38,7 @@ const StatCard = ({ title, value, change, icon: Icon, trend }: any) => (
 
 export default function DashboardOverview() {
   const { user } = useAuth();
+  const [campaigns, setCampaigns] = useState<any[]>([]);
   const [stats, setStats] = useState({
     leads: 0,
     sent: 0,
@@ -65,10 +66,11 @@ export default function DashboardOverview() {
         // Fetch campaigns stats
         const { data: campaignsData, error: campaignsError } = await supabase
           .from('campaigns')
-          .select('stats')
+          .select('*')
           .eq('user_id', user.uid);
         
         if (!campaignsError && campaignsData) {
+          setCampaigns(campaignsData);
           let sent = 0, opened = 0, conv = 0;
           campaignsData.forEach(c => {
             sent += c.stats?.sent || 0;
@@ -138,24 +140,41 @@ export default function DashboardOverview() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="md:col-span-2 neumorph rounded-[2.5rem] p-6 md:p-8">
-          <div className="flex justify-between items-center mb-8">
-            <h3 className="text-xl font-display font-bold text-slate-800 dark:text-slate-200">Outreach Performance</h3>
-            <div className="flex gap-2">
-              <button className="neumorph-sm px-4 py-2 rounded-xl text-sm font-medium text-blue-600 dark:text-blue-400">Weekly</button>
-              <button className="px-4 py-2 rounded-xl text-sm font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800/50">Monthly</button>
-            </div>
-          </div>
-          <div className="h-48 md:h-64 flex items-end justify-between gap-2 md:gap-4 px-2 md:px-4">
-            {[40, 65, 45, 90, 55, 75, 60].map((h, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-2 md:gap-3">
-                <motion.div 
-                  initial={{ height: 0 }}
-                  animate={{ height: `${h}%` }}
-                  className="w-full max-w-[32px] md:max-w-[40px] bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-lg md:rounded-t-xl shadow-lg shadow-blue-500/20"
-                />
-                <span className="text-[10px] md:text-xs font-bold text-slate-400 dark:text-slate-500">Day {i+1}</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            <div className="space-y-6">
+              <h3 className="text-xl font-display font-bold text-slate-800 dark:text-slate-200">Outreach Performance</h3>
+              <div className="h-48 md:h-64 flex items-end justify-between gap-2 md:gap-4 px-2 md:px-4">
+                {[40, 65, 45, 90, 55, 75, 60].map((h, i) => (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-2 md:gap-3">
+                    <motion.div 
+                      initial={{ height: 0 }}
+                      animate={{ height: `${h}%` }}
+                      className="w-full max-w-[32px] md:max-w-[40px] bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-lg md:rounded-t-xl shadow-lg shadow-blue-500/20"
+                    />
+                    <span className="text-[10px] md:text-xs font-bold text-slate-400 dark:text-slate-500">Day {i+1}</span>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+
+            <div className="space-y-6">
+              <h3 className="text-xl font-display font-bold text-slate-800 dark:text-slate-200">Campaign Status</h3>
+              <div className="flex flex-col gap-4">
+                {[
+                  { label: "Active Campaigns", count: campaigns.filter(c => c.status === 'Active').length, color: "bg-emerald-500", text: "text-emerald-600" },
+                  { label: "Paused Campaigns", count: campaigns.filter(c => c.status === 'Paused').length, color: "bg-amber-500", text: "text-amber-600" },
+                  { label: "Drafts", count: campaigns.filter(c => c.status === 'Draft').length, color: "bg-slate-400", text: "text-slate-400" }
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center justify-between p-4 neumorph-sm rounded-2xl group hover:scale-[1.02] transition-all">
+                    <div className="flex items-center gap-3">
+                      <div className={cn("w-3 h-3 rounded-full animate-pulse", item.color)} />
+                      <span className="font-bold text-slate-600 dark:text-slate-400">{item.label}</span>
+                    </div>
+                    <span className={cn("text-2xl font-display font-bold", item.text)}>{item.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 

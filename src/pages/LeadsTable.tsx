@@ -93,6 +93,14 @@ export default function LeadsTable() {
   const handleAddLead = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    
+    // Basic email validation
+    const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    if (!emailRegex.test(newLead.email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
     try {
       setError(null);
       const { error: supabaseError } = await supabase.from('leads').insert([{
@@ -186,6 +194,16 @@ export default function LeadsTable() {
 
               const cleanedLead = await cleanLeadWithAI(mappedLead);
               
+              // Validate email before insert if it was found or provided
+              if (cleanedLead.email) {
+                const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+                if (!emailRegex.test(cleanedLead.email)) {
+                  console.warn(`Skipping lead with invalid email: ${cleanedLead.email}`);
+                  failedCount++;
+                  continue;
+                }
+              }
+
               const { error: supabaseError } = await supabase.from('leads').insert([{
                 ...cleanedLead,
                 user_id: user.uid,
@@ -515,16 +533,29 @@ export default function LeadsTable() {
                   <p className="text-xs text-slate-400 font-bold uppercase tracking-tighter">Value</p>
                   <p className="font-bold text-slate-800">₹{(lead.value || 0).toLocaleString('en-IN')}</p>
                 </div>
-                <div className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold",
-                  lead.status === 'Verified' ? "bg-emerald-100 text-emerald-700" :
-                  lead.status === 'Pending' ? "bg-amber-100 text-amber-700" :
-                  "bg-rose-100 text-rose-700"
-                )}>
-                  {lead.status === 'Verified' ? <CheckCircle2 className="w-3 h-3" /> :
-                   lead.status === 'Pending' ? <Clock className="w-3 h-3" /> :
-                   <XCircle className="w-3 h-3" />}
-                  {lead.status}
+                <div className="flex flex-col items-end gap-2">
+                  <div className={cn(
+                    "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                    !lead.is_cleaned ? "bg-amber-100 text-amber-700" :
+                    lead.is_email_found ? "bg-emerald-100 text-emerald-700" :
+                    "bg-rose-100 text-rose-700"
+                  )}>
+                    {!lead.is_cleaned ? <Clock className="w-3 h-3" /> :
+                     lead.is_email_found ? <CheckCircle2 className="w-3 h-3" /> :
+                     <XCircle className="w-3 h-3" />}
+                    {!lead.is_cleaned ? 'Pending Verification' : lead.is_email_found ? 'Email Valid' : 'Email Invalid'}
+                  </div>
+                  <div className={cn(
+                    "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold",
+                    lead.status === 'Verified' ? "bg-emerald-100 text-emerald-700" :
+                    lead.status === 'Pending' ? "bg-amber-100 text-amber-700" :
+                    "bg-rose-100 text-rose-700"
+                  )}>
+                    {lead.status === 'Verified' ? <CheckCircle2 className="w-3 h-3" /> :
+                     lead.status === 'Pending' ? <Clock className="w-3 h-3" /> :
+                     <XCircle className="w-3 h-3" />}
+                    {lead.status}
+                  </div>
                 </div>
               </div>
             </div>
@@ -537,6 +568,7 @@ export default function LeadsTable() {
             <thead className="bg-slate-50/50 text-slate-500 text-[10px] font-bold uppercase tracking-widest">
               <tr>
                 <th className="px-8 py-6">Lead</th>
+                <th className="px-8 py-6">Verification</th>
                 <th className="px-8 py-6">Company</th>
                 <th className="px-8 py-6">Value</th>
                 <th className="px-8 py-6">Source</th>
@@ -557,6 +589,21 @@ export default function LeadsTable() {
                         <p className="text-xs text-slate-500 dark:text-slate-400">{lead.email}</p>
                       </div>
                     </div>
+                  </td>
+                  <td className="px-8 py-6">
+                    {!lead.is_cleaned ? (
+                      <div className="flex items-center gap-1.5 text-amber-500 text-[10px] font-bold uppercase">
+                        <Clock className="w-3.5 h-3.5" /> Pending
+                      </div>
+                    ) : lead.is_email_found ? (
+                      <div className="flex items-center gap-1.5 text-emerald-500 text-[10px] font-bold uppercase">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Valid
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 text-rose-500 text-[10px] font-bold uppercase">
+                        <XCircle className="w-3.5 h-3.5" /> Invalid
+                      </div>
+                    )}
                   </td>
                   <td className="px-8 py-6 font-medium text-slate-600 dark:text-slate-400">{lead.company}</td>
                   <td className="px-8 py-6 font-bold text-slate-800 dark:text-slate-200">₹{(lead.value || 0).toLocaleString('en-IN')}</td>

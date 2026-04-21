@@ -23,7 +23,7 @@ CREATE TABLE leads (
   user_id TEXT NOT NULL,
   first_name TEXT,
   last_name TEXT,
-  email TEXT,
+  email TEXT CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$'),
   company TEXT,
   website TEXT,
   status TEXT DEFAULT 'Pending',
